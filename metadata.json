@@ -1,0 +1,7 @@
+{
+  "name": "Magic Accessory - AI Jewelry Try-On",
+  "description": "A magical AI-powered mobile app for analyzing hand shapes and virtually trying on jewelry based on the prototype design.",
+  "requestFramePermissions": [
+    "camera"
+  ]
+}
