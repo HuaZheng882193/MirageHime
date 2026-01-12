@@ -3,6 +3,8 @@ import React, { useState, useRef } from 'react';
 import { analyzeHand } from '../services/geminiService';
 import { HandAnalysis } from '../types';
 
+declare var html2pdf: any;
+
 interface TryOnScreenProps {
   onBack: () => void;
 }
@@ -20,7 +22,7 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
   const [isDownloading, setIsDownloading] = useState(false);
 
   const fileInputRef = useRef<HTMLInputElement>(null);
-  const resultRef = useRef<HTMLDivElement>(null);
+  const reportContentRef = useRef<HTMLDivElement>(null);
 
   const handleCategorySelect = (id: string) => {
     setActiveCategory(id);
@@ -49,117 +51,29 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
     }
   };
 
-  const handleDownload = async () => {
-    if (!analysis || !image) return;
+  const handleDownloadPDF = async () => {
+    if (!analysis || !image || !reportContentRef.current) return;
     setIsDownloading(true);
 
     try {
-      const canvas = document.createElement('canvas');
-      const ctx = canvas.getContext('2d');
-      if (!ctx) return;
+      const element = reportContentRef.current;
+      const opt = {
+        margin: [0, 0, 0, 0],
+        filename: `幻饰姬-魔法契约报告-${Date.now()}.pdf`,
+        image: { type: 'jpeg', quality: 1.0 },
+        html2canvas: { 
+          scale: 3, 
+          useCORS: true, 
+          letterRendering: true,
+          backgroundColor: '#FFFFFF'
+        },
+        jsPDF: { unit: 'mm', format: 'a4', orientation: 'portrait' }
+      };
 
-      const img = new Image();
-      img.crossOrigin = "anonymous";
-      img.src = image;
-
-      await new Promise((resolve) => {
-        img.onload = resolve;
-      });
-
-      // 设置画布大小 (1080 x 1920 高清海报比例)
-      canvas.width = 1080;
-      canvas.height = 1920;
-
-      // 绘制背景
-      ctx.fillStyle = '#FFFFFF';
-      ctx.fillRect(0, 0, canvas.width, canvas.height);
-
-      // 绘制用户上传图片 (占据上半部分)
-      const imgHeight = (canvas.width / img.width) * img.height;
-      ctx.drawImage(img, 0, 0, canvas.width, imgHeight);
-
-      // 绘制半透明渐变遮罩
-      const gradient = ctx.createLinearGradient(0, imgHeight - 200, 0, imgHeight);
-      gradient.addColorStop(0, 'rgba(255,255,255,0)');
-      gradient.addColorStop(1, '#FFFFFF');
-      ctx.fillStyle = gradient;
-      ctx.fillRect(0, imgHeight - 200, canvas.width, 200);
-
-      // 绘制文字内容
-      ctx.fillStyle = '#111827';
-      ctx.font = 'bold 60px "Noto Sans SC"';
-      ctx.fillText(analysis.shape, 80, imgHeight + 100);
-
-      ctx.fillStyle = '#FF3366';
-      ctx.font = 'bold 30px "Noto Sans SC"';
-      ctx.fillText('DIAGNOSIS RESULT', 80, imgHeight + 30);
-
-      // 绘制特点标签
-      let currentX = 80;
-      ctx.font = '40px "Noto Sans SC"';
-      analysis.features.forEach((feature) => {
-        const textWidth = ctx.measureText(feature).width;
-        ctx.fillStyle = '#F3F4F6';
-        ctx.roundRect?.(currentX - 20, imgHeight + 160, textWidth + 40, 70, 15);
-        ctx.fill();
-        ctx.fillStyle = '#374151';
-        ctx.fillText(feature, currentX, imgHeight + 210);
-        currentX += textWidth + 80;
-      });
-
-      // 绘制美学建议
-      ctx.fillStyle = '#4B5563';
-      ctx.font = 'bold 35px "Noto Sans SC"';
-      ctx.fillText('专业美学建议', 80, imgHeight + 320);
-      
-      ctx.fillStyle = '#1F2937';
-      ctx.font = '32px "Noto Sans SC"';
-      const words = analysis.recommendations.split('');
-      let line = '';
-      let y = imgHeight + 380;
-      for(let n = 0; n < words.length; n++) {
-        let testLine = line + words[n];
-        let metrics = ctx.measureText(testLine);
-        if (metrics.width > 920 && n > 0) {
-          ctx.fillText(line, 80, y);
-          line = words[n];
-          y += 50;
-        } else {
-          line = testLine;
-        }
-      }
-      ctx.fillText(line, 80, y);
-
-      // 绘制推荐类型
-      y += 120;
-      ctx.fillStyle = '#4B5563';
-      ctx.font = 'bold 35px "Noto Sans SC"';
-      ctx.fillText('推荐首饰类型', 80, y);
-      y += 60;
-      
-      analysis.recommendedTypes.forEach((type, idx) => {
-        ctx.fillStyle = '#F9FAFB';
-        ctx.roundRect?.(80, y, 920, 100, 20);
-        ctx.fill();
-        ctx.fillStyle = '#111827';
-        ctx.font = 'bold 36px "Noto Sans SC"';
-        ctx.fillText(`${idx + 1}. ${type}`, 120, y + 65);
-        y += 130;
-      });
-
-      // 页脚
-      ctx.fillStyle = '#FF3366';
-      ctx.font = 'bold 30px "Noto Sans SC"';
-      ctx.fillText('MAGIC ACCESSORY 幻饰姬 AI 实验室', canvas.width / 2 - 250, 1850);
-
-      const dataUrl = canvas.toDataURL('image/png');
-      const link = document.createElement('a');
-      link.download = `Hand-Analysis-Report-${Date.now()}.png`;
-      link.href = dataUrl;
-      link.click();
+      await html2pdf().set(opt).from(element).save();
     } catch (err) {
       console.error(err);
-      alert('下载失败');
+      alert('报告生成失败，请重试');
     } finally {
       setIsDownloading(false);
     }
@@ -201,7 +115,7 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
           <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0a0a0c] animate-fade-in">
             <button onClick={() => setStep('category')} className="absolute top-24 left-8 text-white/40 text-xs font-bold flex items-center gap-1">
                <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" /></svg>
-               返回重选分类
+               返回
             </button>
             <div 
               onClick={() => fileInputRef.current?.click()}
@@ -239,93 +153,142 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
 
       case 'result':
         return (
-          <div className="flex-1 flex flex-col bg-white overflow-y-auto hide-scrollbar">
-            <div className="relative h-[40vh] flex-shrink-0">
-              <img src={image!} className="w-full h-full object-cover" alt="Uploaded" />
-              <div className="absolute inset-0 bg-gradient-to-t from-white via-transparent to-black/20"></div>
-              <button 
-                onClick={() => setStep('category')}
-                className="absolute bottom-6 left-6 bg-white/20 backdrop-blur-md border border-white/30 text-white px-4 py-2 rounded-2xl text-xs font-bold"
-              >
-                重新分析
-              </button>
-            </div>
-            
-            <div className="px-6 -mt-10 relative z-10 pb-12">
-              <div className="bg-white rounded-[40px] shadow-[0_20px_50px_rgba(255,51,102,0.1)] p-8 border border-pink-50">
-                <div className="flex items-center justify-between mb-8">
-                  <div>
-                    <span className="text-[10px] font-black text-pink-500 uppercase tracking-[0.2em] mb-1 block">Diagnosis Result</span>
-                    <h2 className="text-gray-900 text-3xl font-black">{analysis?.shape}</h2>
-                  </div>
-                  <div className="w-14 h-14 bg-pink-50 rounded-2xl flex items-center justify-center text-2xl">
-                    {activeCategory === 'ring' ? '💍' : '✨'}
-                  </div>
-                </div>
-
-                <div className="space-y-8">
-                  <div>
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">形态特征描述</h4>
-                    <div className="flex flex-wrap gap-2">
-                      {analysis?.features.map((feature, i) => (
-                        <div key={i} className="px-4 py-2 bg-gray-50 rounded-xl text-gray-700 text-sm font-medium border border-gray-100">
-                          {feature}
-                        </div>
-                      ))}
-                    </div>
+          <div className="flex-1 flex flex-col bg-[#FFF5F7] overflow-y-auto hide-scrollbar">
+            {/* 魔法报告主容器 */}
+            <div ref={reportContentRef} className="bg-[#FFF5F7] pb-12">
+              {/* 顶部英雄区：带装饰的拍立得效果 */}
+              <div className="relative pt-12 px-6 pb-4">
+                <div className="relative aspect-[4/5] w-full rounded-[40px] overflow-hidden shadow-2xl border-[12px] border-white ring-1 ring-pink-100">
+                  <img src={image!} className="w-full h-full object-cover" alt="Uploaded" crossOrigin="anonymous" />
+                  <div className="absolute inset-0 bg-gradient-to-t from-pink-500/20 to-transparent"></div>
+                  
+                  {/* 悬浮装饰 */}
+                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg">
+                    <span className="text-pink-500 animate-pulse">✨</span>
+                    <span className="text-[10px] font-black text-gray-800 tracking-tighter">AI GENETIC SCAN</span>
                   </div>
 
-                  <div className="pt-6 border-t border-gray-50">
-                    <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest mb-4">专业美学建议</h4>
-                    <div className="bg-pink-50/20 rounded-[24px] p-6 relative">
-                      <p className="text-gray-800 text-sm leading-relaxed font-medium italic">
-                        {analysis?.recommendations}
-                      </p>
+                  {/* 魔法印章 */}
+                  <div className="absolute bottom-6 left-6 w-20 h-20 border-2 border-white/50 rounded-full flex items-center justify-center rotate-12">
+                    <div className="text-[8px] text-white font-bold text-center leading-tight">
+                      CERTIFIED<br/>AESTHETIC<br/>GENIUS
                     </div>
                   </div>
-
-                  <div className="pt-6 border-t border-gray-50">
-                    <div className="flex items-center justify-between mb-4">
-                      <h4 className="text-[10px] font-black text-gray-400 uppercase tracking-widest">推荐饰品类型</h4>
-                      <span className="text-[8px] bg-purple-100 text-purple-600 px-2 py-0.5 rounded-full font-bold">TOP MATCH</span>
-                    </div>
-                    <div className="grid grid-cols-1 gap-3">
-                      {analysis?.recommendedTypes.map((type, i) => (
-                        <div key={i} className="flex items-center gap-4 p-4 bg-gray-50 rounded-2xl border border-gray-100 group active:scale-[0.98] transition-all">
-                          <div className="w-10 h-10 rounded-xl bg-white shadow-sm flex items-center justify-center text-lg">
-                            {activeCategory === 'ring' ? '💍' : '✨'}
-                          </div>
-                          <span className="text-gray-900 font-bold text-sm">{type}</span>
-                          <div className="ml-auto opacity-20 group-hover:opacity-100 transition-opacity">
-                            <svg xmlns="http://www.w3.org/2000/svg" className="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={3} d="M9 5l7 7-7 7" /></svg>
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  </div>
-                </div>
-
-                <div className="grid grid-cols-2 gap-4 mt-12">
-                  <button 
-                    onClick={onBack}
-                    className="py-5 bg-gray-100 rounded-[24px] text-gray-600 font-black active:scale-95 transition-all"
-                  >
-                    确认报告
-                  </button>
-                  <button 
-                    onClick={handleDownload}
-                    disabled={isDownloading}
-                    className="py-5 magic-gradient rounded-[24px] text-white font-black shadow-xl shadow-pink-200 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
-                  >
-                    {isDownloading ? (
-                      <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
-                    ) : (
-                      <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4" /></svg>
-                    )}
-                    {isDownloading ? '生成中...' : '下载报告'}
-                  </button>
                 </div>
               </div>
+              
+              <div className="px-6 -mt-8 relative z-10 pb-4">
+                {/* 结果主卡片 */}
+                <div className="bg-white rounded-[48px] shadow-[0_30px_60px_-15px_rgba(255,102,153,0.15)] p-8 border-b-8 border-pink-100">
+                  
+                  {/* 标题区 */}
+                  <div className="text-center mb-10">
+                    <div className="inline-block px-4 py-1 bg-pink-50 rounded-full text-[10px] font-black text-pink-400 uppercase tracking-[0.3em] mb-3">
+                      Your Magic Signature
+                    </div>
+                    <h2 className="text-gray-900 text-4xl font-black mb-2 flex items-center justify-center gap-3">
+                      <span className="text-2xl">✦</span>
+                      {analysis?.shape}
+                      <span className="text-2xl">✦</span>
+                    </h2>
+                    <div className="h-1 w-20 bg-gradient-to-r from-transparent via-pink-200 to-transparent mx-auto"></div>
+                  </div>
+
+                  <div className="space-y-10">
+                    {/* 形态特征 */}
+                    <section>
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-6 h-6 bg-pink-100 rounded-full flex items-center justify-center text-[10px]">🌸</div>
+                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">魔法特质描述</h4>
+                      </div>
+                      <div className="flex flex-wrap gap-2">
+                        {analysis?.features.map((feature, i) => (
+                          <div key={i} className="px-5 py-2.5 bg-[#FFF9FA] rounded-2xl text-gray-700 text-sm font-bold border border-pink-50 shadow-sm transition-transform hover:scale-105">
+                            {feature}
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+
+                    {/* 专家建议：信件风格 */}
+                    <section className="relative">
+                      <div className="absolute -top-4 -right-2 text-6xl text-pink-50 opacity-50 select-none">“</div>
+                      <div className="flex items-center gap-2 mb-4">
+                        <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center text-[10px]">🔮</div>
+                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">专属美学建议</h4>
+                      </div>
+                      <div className="bg-gradient-to-br from-pink-50/50 to-purple-50/30 rounded-[32px] p-7 border border-pink-100/50">
+                        <p className="text-gray-800 text-[15px] leading-loose font-medium italic">
+                          {analysis?.recommendations}
+                        </p>
+                      </div>
+                    </section>
+
+                    {/* 推荐类型：网格卡片 */}
+                    <section>
+                      <div className="flex items-center justify-between mb-5">
+                        <div className="flex items-center gap-2">
+                          <div className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center text-[10px]">⭐</div>
+                          <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">推荐款式风格</h4>
+                        </div>
+                        <span className="text-[9px] bg-pink-500 text-white px-3 py-1 rounded-full font-black animate-bounce shadow-lg shadow-pink-200">99% MATCH</span>
+                      </div>
+                      <div className="grid grid-cols-2 gap-4">
+                        {analysis?.recommendedTypes.map((type, i) => (
+                          <div key={i} className="group relative bg-[#FFF9FA] p-4 rounded-[28px] border border-pink-50 flex flex-col items-center text-center transition-all hover:bg-white hover:shadow-xl active:scale-95">
+                            <div className="w-12 h-12 rounded-full bg-white shadow-inner flex items-center justify-center text-xl mb-3 border border-pink-50">
+                              {activeCategory === 'ring' ? '💍' : '✨'}
+                            </div>
+                            <span className="text-gray-900 font-black text-[10px] leading-tight px-1">{type}</span>
+                            <div className="mt-2 flex gap-0.5">
+                              {[1,2,3].map(s => <span key={s} className="text-[8px] text-pink-300">★</span>)}
+                            </div>
+                          </div>
+                        ))}
+                      </div>
+                    </section>
+                  </div>
+                </div>
+
+                {/* 页脚版权 */}
+                <div className="pt-12 text-center opacity-30">
+                  <p className="text-[8px] font-black tracking-[0.4em] text-gray-400 uppercase">Magic Accessory AI Lab • 2024</p>
+                </div>
+              </div>
+            </div>
+
+            {/* 操作按钮区 (始终保持底部) */}
+            <div className="px-6 pb-12 pt-4 bg-[#FFF5F7]">
+              <div className="grid grid-cols-2 gap-4">
+                <button 
+                  onClick={onBack}
+                  className="py-5 bg-white rounded-[28px] text-gray-400 font-black text-sm border-2 border-pink-50 shadow-sm active:scale-95 transition-all"
+                >
+                  暂存记忆
+                </button>
+                <button 
+                  onClick={handleDownloadPDF}
+                  disabled={isDownloading}
+                  className="py-5 magic-gradient rounded-[28px] text-white font-black text-sm shadow-xl shadow-pink-200 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50"
+                >
+                  {isDownloading ? (
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
+                  ) : (
+                    <span className="flex items-center gap-2">
+                       <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2.5} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                       导出契约
+                    </span>
+                  )}
+                </button>
+              </div>
+              <button 
+                onClick={() => setStep('category')}
+                className="w-full mt-6 py-2 text-pink-400 font-black text-[10px] tracking-widest flex items-center justify-center gap-2 hover:text-pink-600 transition-colors"
+              >
+                <span>RE-DIAGNOSIS</span>
+                <span className="w-1 h-1 bg-pink-200 rounded-full"></span>
+                <span>重新诊断</span>
+              </button>
             </div>
           </div>
         );
