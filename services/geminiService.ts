@@ -124,14 +124,11 @@ export const analyzeHand = async (base64Image: string, category: string) => {
       !data.recommendations ||
       !Array.isArray(data.recommendedTypes)
     ) {
-      console.error("转换后的数据结构:", data);
-      console.error("原始API数据:", rawData);
       throw new Error("API返回的数据结构不符合预期");
     }
 
     return data;
   } catch (error) {
-    console.error("SiliconFlow API调用失败:", error);
     // 如果是网络错误或其他非API错误，保留原错误
     if (error instanceof TypeError && error.message.includes("fetch")) {
       throw new Error("网络连接失败，请检查网络连接");
