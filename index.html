@@ -1,65 +1,24 @@
-
 <!DOCTYPE html>
 <html lang="zh-CN">
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Magic Accessory - 幻饰姬</title>
-
-    <script src="https://cdn.tailwindcss.com"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
-    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+SC:wght@400;500;700&display=swap" rel="stylesheet">
+    <title>MirageHime - 部署测试</title>
     <style>
-        body {
-            font-family: 'Noto+Sans+SC', sans-serif;
-            background-color: #F8F9FA;
-            user-select: none;
-            -webkit-tap-highlight-color: transparent;
-        }
-        .magic-gradient {
-            background: linear-gradient(135deg, #FF3366 0%, #FF66B2 100%);
-        }
-        .glass-card {
-            background: rgba(255, 255, 255, 0.8);
-            backdrop-filter: blur(10px);
-            border: 1px solid rgba(255, 255, 255, 0.3);
-        }
-        .hide-scrollbar::-webkit-scrollbar {
-            display: none;
-        }
+        body { font-family: sans-serif; display: flex; justify-content: center; align-items: center; height: 100vh; margin: 0; background: #f0f2f5; }
+        .card { background: white; padding: 2rem; border-radius: 8px; shadow: 0 2px 4px rgba(0,0,0,0.1); text-align: center; }
+        h1 { color: #FF3366; }
     </style>
-<script type="importmap">
-{
-  "imports": {
-    "react/": "https://esm.sh/react@^19.2.3/",
-    "react": "https://esm.sh/react@^19.2.3",
-    "@google/genai": "https://esm.sh/@google/genai@^1.35.0",
-    "react-dom/": "https://esm.sh/react-dom@^19.2.3/"
-  }
-}
-</script>
 </head>
-<body class="overflow-x-hidden">
-    <div id="root">
-      <div style="padding: 20px; text-align: center;">
-        <h1 style="color: #FF3366;">幻饰姬加载中...</h1>
-        <p>如果长时间未加载，请检查网络连接。</p>
-      </div>
+<body>
+    <div class="card">
+        <h1>幻饰姬 (MirageHime)</h1>
+        <p>部署测试页面</p>
+        <p id="status">正在检查脚本运行状态...</p>
     </div>
     <script>
-      document.addEventListener('DOMContentLoaded', function() {
-        console.log('DOM fully loaded and parsed');
-        const root = document.getElementById('root');
-        const testDiv = document.createElement('div');
-        testDiv.innerHTML = '<div style="background: #FF3366; color: white; padding: 10px; margin-top: 20px;">内联脚本运行成功！</div>';
-        root.appendChild(testDiv);
-      });
+        document.getElementById('status').innerText = '脚本运行成功！当前时间：' + new Date().toLocaleString();
+        console.log('Test script executed');
     </script>
-    <script>
-      window.addEventListener('error', function(e) {
-        console.error('Runtime error:', e.message, 'at', e.filename, ':', e.lineno);
-      }, true);
-    </script>
-    <script type="module" src="assets/index-g2Xa8GFO.js"></script>
 </body>
 </html>
