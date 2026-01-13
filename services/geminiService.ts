@@ -9,10 +9,17 @@ export const analyzeHand = async (base64Image: string, category: string) => {
     throw new Error("API Key is missing. Please check your configuration.");
   }
 
+  // Use the object form which is required in some browser-based SDK versions
   const genAI = new GoogleGenAI(API_KEY);
   
-  // Use a valid model name
-  const model = genAI.getGenerativeModel({
+  // Actually, the error "An API Key must be set when running in a browser" 
+  // often happens when the SDK thinks it's in a browser but the key is passed as a string 
+  // and it expects it to be handled via a specific proxy or it's just a bug in how it detects the key.
+  // Passing it as an object { apiKey: ... } often bypasses this check.
+  
+  const genAIInstance = new (GoogleGenAI as any)({ apiKey: API_KEY });
+  
+  const model = genAIInstance.getGenerativeModel({
     model: "gemini-1.5-flash",
   });
   
