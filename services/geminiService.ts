@@ -1,8 +1,8 @@
 
 import { GoogleGenAI } from "@google/genai";
 
-// Vite will replace process.env.API_KEY based on vite.config.ts
-const API_KEY = process.env.API_KEY || '';
+// Hardcoding for testing to ensure it works in browser
+const API_KEY = "AIzaSyBTRmInhNKbAelMC3PEk6W59jPLdbIaFcA";
 
 export const analyzeHand = async (base64Image: string, category: string) => {
   if (!API_KEY) {
