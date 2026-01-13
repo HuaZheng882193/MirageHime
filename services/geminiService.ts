@@ -59,7 +59,8 @@ export const analyzeHand = async (base64Image: string, category: string) => {
           content: [
             {
               type: "text",
-              text: `请分析这张手部照片。首先识别手型（如：尖锥型、长方型、椭圆型等），详细描述其特点，并专门针对"${categoryName}"品类给出专业美学建议。此外，请列出4种最适合该手型的${categoryName}具体款式类型（例如：细带简约型、夸张宝石型、编织波西米亚型等）。请以JSON格式返回，不要包含Markdown代码块。`,
+              text: `请分析这张手部照片。首先识别手型（如：尖锥型、长方型、椭圆型等），详细描述其特点，并专门针对"${categoryName}"品类给出专业美学建议。此外，请列出4种最适合该手型的${categoryName}具体款式类型（例如：细带简约型、夸张宝石型、编织波西米亚型等）。请以JSON格式
+              {"hand_type": "", "hand_characteristics": "", "aesthetic_advice_for_bracelets": "","recommended_bracelet_styles",""}作为参数返回，不要包含Markdown代码块。`,
             },
             {
               type: "image_url",
@@ -72,9 +73,10 @@ export const analyzeHand = async (base64Image: string, category: string) => {
       ],
       stream: false,
       max_tokens: 4096,
-      temperature: 0.7,
+      temperature: 0,
       top_p: 0.8,
       frequency_penalty: 0.1,
+      response_format: { type: "json_object" },
     }),
   };
 
@@ -112,14 +114,8 @@ export const analyzeHand = async (base64Image: string, category: string) => {
     const data = {
       shape: rawData.hand_type || "未知手型",
       features: convertCharacteristicsToArray(rawData.hand_characteristics),
-      recommendations:
-        rawData.aesthetic_advice_for_bracelets ||
-        rawData.aesthetic_advice_for_rings ||
-        "暂无建议",
-      recommendedTypes:
-        rawData.recommended_bracelet_styles ||
-        rawData.recommended_ring_styles ||
-        [],
+      recommendations: rawData.aesthetic_advice_for_bracelets || "暂无建议",
+      recommendedTypes: rawData.recommended_bracelet_styles || [],
     };
 
     // 验证转换后的数据结构
