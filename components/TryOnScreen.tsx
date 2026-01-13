@@ -293,13 +293,21 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
                         </h4>
                       </div>
                       <div className="flex flex-wrap gap-2">
-                        {analysis?.features.map((feature, i) => (
-                          <div
-                            key={i}
-                            className="px-5 py-2.5 bg-[#FFF9FA] rounded-2xl text-gray-700 text-sm font-bold border border-pink-50 shadow-sm transition-transform hover:scale-105">
-                            {feature}
+                        {analysis?.features
+                          ?.filter(
+                            (feature) => feature && feature.trim().length > 0
+                          )
+                          ?.map((feature, i) => (
+                            <div
+                              key={i}
+                              className="px-5 py-2.5 bg-[#FFF9FA] rounded-2xl text-gray-700 text-sm font-bold border border-pink-50 shadow-sm transition-transform hover:scale-105">
+                              {feature.trim()}
+                            </div>
+                          )) || (
+                          <div className="px-5 py-2.5 bg-[#FFF9FA] rounded-2xl text-gray-500 text-sm font-bold border border-pink-50 shadow-sm">
+                            暂无特征描述
                           </div>
-                        ))}
+                        )}
                       </div>
                     </section>
 
@@ -423,13 +431,14 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
 
   return (
     <div className="fixed inset-0 bg-[#0a0a0c] z-[60] flex flex-col font-sans overflow-hidden">
-      <div
-        className={`absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-20 pointer-events-none transition-opacity ${
-          step === "result" ? "opacity-0" : "opacity-100"
-        }`}>
+      <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-20 pointer-events-none">
         <button
           onClick={onBack}
-          className="w-10 h-10 rounded-xl bg-white/10 backdrop-blur-xl flex items-center justify-center text-white pointer-events-auto active:scale-90 transition-transform">
+          className={`w-10 h-10 rounded-xl flex items-center justify-center pointer-events-auto active:scale-90 transition-all ${
+            step === "result"
+              ? "bg-white/90 text-gray-700 hover:bg-white shadow-lg"
+              : "bg-white/10 backdrop-blur-xl text-white hover:bg-white/20"
+          }`}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="w-5 h-5"
@@ -445,10 +454,20 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
           </svg>
         </button>
         <div className="text-center">
-          <span className="text-white/40 text-[9px] uppercase tracking-[0.2em] font-bold block mb-1">
+          <span
+            className={`text-[9px] uppercase tracking-[0.2em] font-bold block mb-1 transition-colors ${
+              step === "result"
+                ? "text-pink-500 drop-shadow-sm"
+                : "text-white/40"
+            }`}>
             Mirror Lab
           </span>
-          <h2 className="text-white font-black text-lg tracking-tight">
+          <h2
+            className={`font-black tracking-tight transition-all ${
+              step === "result"
+                ? "text-gray-900 text-xl drop-shadow-sm"
+                : "text-white text-lg"
+            }`}>
             AI 美学实验室
           </h2>
         </div>
