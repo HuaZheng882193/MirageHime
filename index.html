@@ -40,7 +40,21 @@
 </script>
 </head>
 <body class="overflow-x-hidden">
-    <div id="root"></div>
+    <div id="root">
+      <div style="padding: 20px; text-align: center;">
+        <h1 style="color: #FF3366;">幻饰姬加载中...</h1>
+        <p>如果长时间未加载，请检查网络连接。</p>
+      </div>
+    </div>
+    <script>
+      document.addEventListener('DOMContentLoaded', function() {
+        console.log('DOM fully loaded and parsed');
+        const root = document.getElementById('root');
+        const testDiv = document.createElement('div');
+        testDiv.innerHTML = '<div style="background: #FF3366; color: white; padding: 10px; margin-top: 20px;">内联脚本运行成功！</div>';
+        root.appendChild(testDiv);
+      });
+    </script>
     <script>
       window.addEventListener('error', function(e) {
         console.error('Runtime error:', e.message, 'at', e.filename, ':', e.lineno);
