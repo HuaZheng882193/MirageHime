@@ -56,7 +56,7 @@ View your app in AI Studio: https://ai.studio/apps/drive/1BBO_HVkmomPgI-TO0OHa3o
 
 2. **自动部署**：
    - GitHub Actions会自动构建并部署
-   - 部署完成后访问 `https://[username].github.io/[repository-name]`
+   - 部署完成后访问 `https://huazheng882193.github.io/MirageHime/`
 
 ### 手动部署
 
