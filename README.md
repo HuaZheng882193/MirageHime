@@ -43,6 +43,18 @@ View your app in AI Studio: https://ai.studio/apps/drive/1BBO_HVkmomPgI-TO0OHa3o
 - API密钥通过 `process.env.API_KEY` 在代码中访问
 - Vite会自动将 `.env.local` 文件中的环境变量注入到构建过程中
 
+## 使用限制
+
+### IP访问限制
+- **每小时最多使用4次**：为了保证服务质量，每个IP地址每小时内最多可以使用4次美学分析功能
+- **自动重置**：每小时自动重置使用次数
+- **剩余次数显示**：在分析过程中会显示当前剩余使用次数
+
+### 为什么有限制？
+- 保护AI API资源，控制使用成本
+- 保证所有用户都能公平使用服务
+- 防止恶意滥用和攻击
+
 ## 部署到GitHub Pages
 
 ### 自动部署（推荐）

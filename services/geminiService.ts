@@ -7,6 +7,113 @@ if (!API_KEY || API_KEY.trim() === "") {
   console.log("API密钥已加载，长度:", API_KEY.length);
 }
 
+// IP访问限制管理
+interface AccessRecord {
+  count: number;
+  firstAccess: number;
+  lastAccess: number;
+}
+
+const ACCESS_LIMIT = 4; // 每小时最大访问次数
+const TIME_WINDOW = 60 * 60 * 1000; // 1小时，毫秒
+
+// 获取客户端IP（在浏览器环境中使用公共服务）
+async function getClientIP(): Promise<string> {
+  try {
+    const response = await fetch("https://api.ipify.org?format=json");
+    const data = await response.json();
+    return data.ip;
+  } catch (error) {
+    console.warn("无法获取IP地址，使用本地标识:", error);
+    // 降级方案：使用浏览器指纹
+    return "local-" + Math.random().toString(36).substr(2, 9);
+  }
+}
+
+// 获取剩余使用次数
+export async function getRemainingUses(): Promise<number> {
+  try {
+    const clientIP = await getClientIP();
+    const storageKey = `miragehime_access_${clientIP}`;
+    const now = Date.now();
+
+    const stored = localStorage.getItem(storageKey);
+    if (stored) {
+      const record: AccessRecord = JSON.parse(stored);
+
+      // 检查是否超过时间窗口
+      if (now - record.firstAccess > TIME_WINDOW) {
+        return ACCESS_LIMIT; // 重置后可以全额使用
+      }
+
+      return Math.max(0, ACCESS_LIMIT - record.count);
+    }
+
+    return ACCESS_LIMIT; // 新用户可以全额使用
+  } catch (error) {
+    console.warn("获取剩余使用次数失败:", error);
+    return ACCESS_LIMIT; // 出错时假设可以全额使用
+  }
+}
+
+// 检查访问限制
+// 检查并记录访问
+async function recordAccess(): Promise<void> {
+  try {
+    const clientIP = await getClientIP();
+    const storageKey = `miragehime_access_${clientIP}`;
+    const now = Date.now();
+
+    // 获取现有记录
+    const stored = localStorage.getItem(storageKey);
+    let record: AccessRecord;
+
+    if (stored) {
+      record = JSON.parse(stored);
+
+      // 检查是否超过时间窗口
+      if (now - record.firstAccess > TIME_WINDOW) {
+        // 重置记录
+        record = {
+          count: 0,
+          firstAccess: now,
+          lastAccess: now,
+        };
+      }
+    } else {
+      // 新用户
+      record = {
+        count: 0,
+        firstAccess: now,
+        lastAccess: now,
+      };
+    }
+
+    // 检查是否超过限制
+    if (record.count >= ACCESS_LIMIT) {
+      const remainingTime = Math.ceil(
+        (TIME_WINDOW - (now - record.firstAccess)) / (60 * 1000)
+      );
+      throw new Error(
+        `访问过于频繁，请${remainingTime}分钟后再试。（每小时最多使用${ACCESS_LIMIT}次）`
+      );
+    }
+
+    // 更新记录
+    record.count += 1;
+    record.lastAccess = now;
+
+    // 保存记录
+    localStorage.setItem(storageKey, JSON.stringify(record));
+
+    console.log(`IP ${clientIP} 访问记录: ${record.count}/${ACCESS_LIMIT}`);
+  } catch (error) {
+    if (error instanceof Error) {
+      throw error;
+    }
+  }
+}
+
 // 将characteristics字符串转换为数组
 function convertCharacteristicsToArray(characteristics: string): string[] {
   if (!characteristics || typeof characteristics !== "string") {
@@ -37,6 +144,9 @@ function convertCharacteristicsToArray(characteristics: string): string[] {
 }
 
 export const analyzeHand = async (base64Image: string, category: string) => {
+  // 检查并记录访问
+  await recordAccess();
+
   const categoryName = category === "ring" ? "戒指" : "手链";
 
   // 确保base64图片格式正确

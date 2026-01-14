@@ -1,5 +1,5 @@
 import React, { useState, useRef } from "react";
-import { analyzeHand } from "../services/geminiService";
+import { analyzeHand, getRemainingUses } from "../services/geminiService";
 import { HandAnalysis } from "../types";
 
 declare var html2pdf: any;
@@ -33,8 +33,68 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
   const [analysis, setAnalysis] = useState<HandAnalysis | null>(null);
   const [isDownloading, setIsDownloading] = useState(false);
 
+  // 小游戏状态
+  const [collectedGems, setCollectedGems] = useState(0);
+  const [gemPositions, setGemPositions] = useState<
+    { id: number; x: number; y: number; emoji: string; collected: boolean }[]
+  >([]);
+  const [showParticles, setShowParticles] = useState<{
+    x: number;
+    y: number;
+    id: number;
+  } | null>(null);
+
+  // 使用限制状态
+  const [remainingUses, setRemainingUses] = useState<number | null>(null);
+  const [showLimitModal, setShowLimitModal] = useState(false);
+  const [remainingTime, setRemainingTime] = useState<number>(0);
+
   const fileInputRef = useRef<HTMLInputElement>(null);
   const reportContentRef = useRef<HTMLDivElement>(null);
+
+  // 小游戏函数
+  const initializeGems = () => {
+    const gems = [];
+    const emojis = ["💎", "💍", "🌟", "✨", "🎀", "🌸", "❤️", "🔮"];
+    for (let i = 0; i < 8; i++) {
+      gems.push({
+        id: i,
+        x: Math.random() * 80 + 10, // 10% - 90% 范围
+        y: Math.random() * 60 + 20, // 20% - 80% 范围
+        emoji: emojis[i % emojis.length],
+        collected: false,
+      });
+    }
+    setGemPositions(gems);
+    setCollectedGems(0);
+  };
+
+  const handleGemClick = (gemId: number, x: number, y: number) => {
+    setGemPositions((prev) =>
+      prev.map((gem) => (gem.id === gemId ? { ...gem, collected: true } : gem))
+    );
+    setCollectedGems((prev) => prev + 1);
+
+    // 显示粒子效果
+    setShowParticles({ x, y, id: Date.now() });
+    setTimeout(() => setShowParticles(null), 500);
+  };
+
+  // 初始化剩余使用次数
+  React.useEffect(() => {
+    const loadRemainingUses = async () => {
+      const uses = await getRemainingUses();
+      setRemainingUses(uses);
+    };
+    loadRemainingUses();
+  }, []);
+
+  // 当进入analyzing状态时初始化游戏
+  React.useEffect(() => {
+    if (step === "analyzing") {
+      initializeGems();
+    }
+  }, [step]);
 
   const handleCategorySelect = (id: string) => {
     setActiveCategory(id);
@@ -48,14 +108,41 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
       reader.onload = async (event) => {
         const base64 = event.target?.result as string;
         setImage(base64);
+
+        // 先检查剩余使用次数
+        const remaining = await getRemainingUses();
+        if (remaining <= 0) {
+          // 显示温馨的限制提示
+          setShowLimitModal(true);
+          return;
+        }
+
         setStep("analyzing");
         try {
           const result = await analyzeHand(base64, activeCategory);
           setAnalysis(result);
+          // 更新剩余使用次数
+          const newRemaining = await getRemainingUses();
+          setRemainingUses(newRemaining);
           setStep("result");
         } catch (error) {
           console.error("Analysis failed", error);
-          alert("分析失败，请检查网络或更换照片重试");
+
+          // 更友好的错误提示
+          let errorMessage = "分析失败，请重试";
+          if (error instanceof Error) {
+            if (error.message.includes("过于频繁")) {
+              errorMessage = error.message;
+            } else if (error.message.includes("网络连接")) {
+              errorMessage = "网络连接失败，请检查网络连接后重试";
+            } else if (error.message.includes("API密钥")) {
+              errorMessage = "服务配置错误，请联系管理员";
+            } else if (error.message.includes("数据结构")) {
+              errorMessage = "AI分析结果异常，请更换照片重试";
+            }
+          }
+
+          alert(errorMessage);
           setStep("upload");
         }
       };
@@ -209,21 +296,207 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
 
       case "analyzing":
         return (
-          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0a0a0c]">
-            <div className="relative w-32 h-32 mb-10">
-              <div className="absolute inset-0 border-4 border-pink-500/20 rounded-full"></div>
-              <div className="absolute inset-0 border-4 border-pink-500 border-t-transparent rounded-full animate-spin"></div>
-              <div className="absolute inset-0 flex items-center justify-center text-4xl">
-                🔮
+          <div className="flex-1 flex flex-col items-center justify-center p-8 bg-[#0a0a0c] relative overflow-hidden">
+            {/* 小游戏分数显示 */}
+            <div className="absolute top-6 left-6 bg-white/10 backdrop-blur-md rounded-full px-4 py-2 flex items-center gap-2 z-10">
+              <span className="text-yellow-400 text-lg">💎</span>
+              <span className="text-white font-bold">{collectedGems}/8</span>
+            </div>
+
+            {/* 可点击的魔法宝石 */}
+            {gemPositions.map(
+              (gem) =>
+                !gem.collected && (
+                  <button
+                    key={gem.id}
+                    className="absolute w-12 h-12 text-2xl animate-bounce hover:scale-110 transition-transform cursor-pointer z-10"
+                    style={{
+                      left: `${gem.x}%`,
+                      top: `${gem.y}%`,
+                      animationDelay: `${gem.id * 0.2}s`,
+                    }}
+                    onClick={(e) => {
+                      const rect = e.currentTarget.getBoundingClientRect();
+                      handleGemClick(
+                        gem.id,
+                        rect.left + rect.width / 2,
+                        rect.top + rect.height / 2
+                      );
+                    }}>
+                    {gem.emoji}
+                  </button>
+                )
+            )}
+
+            {/* 点击粒子效果 */}
+            {showParticles && (
+              <div
+                className="absolute pointer-events-none z-20"
+                style={{
+                  left: showParticles.x - 25,
+                  top: showParticles.y - 25,
+                }}>
+                <div className="relative w-12 h-12">
+                  {[...Array(6)].map((_, i) => (
+                    <div
+                      key={i}
+                      className="absolute w-2 h-2 bg-yellow-400 rounded-full animate-ping"
+                      style={{
+                        left: "50%",
+                        top: "50%",
+                        transform: `translate(-50%, -50%) rotate(${
+                          i * 60
+                        }deg) translateY(-20px)`,
+                        animationDelay: `${i * 0.1}s`,
+                      }}
+                    />
+                  ))}
+                  <div className="absolute inset-0 flex items-center justify-center text-yellow-400 font-bold text-lg animate-bounce">
+                    +1
+                  </div>
+                </div>
+              </div>
+            )}
+
+            {/* 魔法背景粒子效果 */}
+            <div className="absolute inset-0 opacity-20">
+              {[...Array(20)].map((_, i) => (
+                <div
+                  key={i}
+                  className="absolute w-2 h-2 bg-pink-400 rounded-full animate-ping"
+                  style={{
+                    left: `${Math.random() * 100}%`,
+                    top: `${Math.random() * 100}%`,
+                    animationDelay: `${Math.random() * 2}s`,
+                    animationDuration: `${2 + Math.random() * 2}s`,
+                  }}
+                />
+              ))}
+            </div>
+
+            {/* 主要魔法圆圈 */}
+            <div className="relative mb-12">
+              {/* 外圈魔法符文 */}
+              <div className="w-40 h-40 border-4 border-purple-400/30 rounded-full animate-spin relative">
+                <div className="absolute -top-2 -left-2 w-6 h-6 bg-yellow-400 rounded-full animate-pulse shadow-lg shadow-yellow-400/50"></div>
+                <div className="absolute -top-2 -right-2 w-4 h-4 bg-blue-400 rounded-full animate-bounce"></div>
+                <div className="absolute -bottom-2 -left-2 w-5 h-5 bg-green-400 rounded-full animate-ping"></div>
+                <div className="absolute -bottom-2 -right-2 w-3 h-3 bg-red-400 rounded-full animate-pulse"></div>
+              </div>
+
+              {/* 中圈旋转元素 */}
+              <div
+                className="absolute inset-4 border-3 border-pink-500/50 rounded-full animate-spin"
+                style={{
+                  animationDirection: "reverse",
+                  animationDuration: "3s",
+                }}>
+                <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-8 h-8 bg-pink-500 rounded-full animate-pulse shadow-lg shadow-pink-500/50">
+                  <div className="w-full h-full bg-gradient-to-br from-pink-300 to-pink-600 rounded-full flex items-center justify-center text-white text-sm font-bold">
+                    ✨
+                  </div>
+                </div>
+              </div>
+
+              {/* 内圈水晶球 */}
+              <div className="absolute inset-8 bg-gradient-to-br from-purple-400/20 to-blue-400/20 rounded-full backdrop-blur-sm border border-white/20 flex items-center justify-center">
+                <div className="w-12 h-12 bg-gradient-to-br from-purple-300 to-blue-500 rounded-full animate-pulse shadow-xl shadow-purple-400/30">
+                  <div className="w-full h-full rounded-full bg-gradient-to-t from-transparent to-white/30 animate-spin flex items-center justify-center text-white text-lg">
+                    🔮
+                  </div>
+                </div>
               </div>
             </div>
-            <h3 className="text-white text-xl font-black mb-4 tracking-widest animate-pulse">
-              正在解码美学基因...
-            </h3>
-            <div className="flex gap-2">
-              <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce [animation-delay:-0.3s]"></div>
-              <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce [animation-delay:-0.15s]"></div>
-              <div className="w-2 h-2 bg-pink-500 rounded-full animate-bounce"></div>
+
+            {/* 动态文本 */}
+            <div className="text-center mb-8">
+              <h3 className="text-white text-2xl font-black mb-2 tracking-wide animate-pulse">
+                魔法分析中...
+              </h3>
+              {remainingUses !== null && (
+                <div className="mb-4">
+                  <div className="inline-flex items-center gap-2 bg-white/10 backdrop-blur-md rounded-full px-4 py-2">
+                    <span className="text-yellow-400">⚡</span>
+                    <span className="text-white text-sm font-medium">
+                      今日剩余: {remainingUses} 次
+                    </span>
+                  </div>
+                </div>
+              )}
+              <div className="flex items-center justify-center gap-2 text-pink-300 text-sm font-medium">
+                <span className="animate-bounce">✨</span>
+                <span className="animate-pulse delay-100">扫描手型特征</span>
+                <span className="animate-bounce delay-200">✨</span>
+              </div>
+            </div>
+
+            {/* 卡通风格进度条 */}
+            <div className="w-64 h-4 bg-white/10 rounded-full overflow-hidden mb-6">
+              <div
+                className="h-full bg-gradient-to-r from-pink-400 to-purple-500 rounded-full animate-pulse"
+                style={{ width: "70%" }}></div>
+            </div>
+
+            {/* 卡通魔法元素 */}
+            <div className="flex items-center justify-center gap-4 mb-8">
+              <div className="w-8 h-8 bg-yellow-400 rounded-full animate-bounce flex items-center justify-center text-sm shadow-lg">
+                🌟
+              </div>
+              <div
+                className="w-8 h-8 bg-blue-400 rounded-full animate-bounce flex items-center justify-center text-sm shadow-lg"
+                style={{ animationDelay: "0.2s" }}>
+                💎
+              </div>
+              <div
+                className="w-8 h-8 bg-green-400 rounded-full animate-bounce flex items-center justify-center text-sm shadow-lg"
+                style={{ animationDelay: "0.4s" }}>
+                🌸
+              </div>
+              <div
+                className="w-8 h-8 bg-purple-400 rounded-full animate-bounce flex items-center justify-center text-sm shadow-lg"
+                style={{ animationDelay: "0.6s" }}>
+                🎀
+              </div>
+              <div
+                className="w-8 h-8 bg-pink-400 rounded-full animate-bounce flex items-center justify-center text-sm shadow-lg"
+                style={{ animationDelay: "0.8s" }}>
+                ❤️
+              </div>
+            </div>
+
+            {/* 趣味提示 */}
+            <div className="text-center">
+              <p className="text-white/60 text-sm mb-2">
+                AI魔法师正在施展魔法...
+              </p>
+              <p className="text-white/40 text-xs mb-3">
+                💡 点击屏幕上的魔法宝石来收集它们吧！
+              </p>
+              <div className="flex justify-center gap-1">
+                <span className="text-xs text-pink-300 animate-pulse">
+                  施法中
+                </span>
+                <span className="text-xs text-purple-300 animate-pulse delay-100">
+                  分析中
+                </span>
+                <span className="text-xs text-blue-300 animate-pulse delay-200">
+                  生成中
+                </span>
+              </div>
+            </div>
+
+            {/* 浮动装饰 */}
+            <div className="absolute top-20 left-10 animate-bounce delay-300">
+              <div className="w-6 h-6 bg-yellow-300 rounded-full opacity-60 animate-ping"></div>
+            </div>
+            <div className="absolute top-32 right-16 animate-bounce delay-500">
+              <div className="w-4 h-4 bg-pink-300 rounded-full opacity-60 animate-ping"></div>
+            </div>
+            <div className="absolute bottom-20 left-20 animate-bounce delay-700">
+              <div className="w-5 h-5 bg-blue-300 rounded-full opacity-60 animate-ping"></div>
+            </div>
+            <div className="absolute bottom-32 right-10 animate-bounce delay-1000">
+              <div className="w-3 h-3 bg-purple-300 rounded-full opacity-60 animate-ping"></div>
             </div>
           </div>
         );
@@ -474,6 +747,66 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
         <div className="w-10 h-10"></div>
       </div>
       {renderContent()}
+
+      {/* 温馨的使用限制提示模态框 */}
+      {showLimitModal && (
+        <div className="fixed inset-0 bg-black/50 backdrop-blur-sm z-[70] flex items-center justify-center p-6">
+          <div className="bg-white rounded-[32px] shadow-2xl max-w-sm w-full p-8 text-center relative overflow-hidden">
+            {/* 背景装饰 */}
+            <div className="absolute inset-0 opacity-5">
+              <div className="absolute top-4 right-4 w-16 h-16 bg-pink-200 rounded-full"></div>
+              <div className="absolute bottom-4 left-4 w-12 h-12 bg-purple-200 rounded-full"></div>
+              <div className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-20 h-20 bg-yellow-200 rounded-full"></div>
+            </div>
+
+            {/* 主要内容 */}
+            <div className="relative z-10">
+              {/* 魔法图标 */}
+              <div className="w-20 h-20 bg-gradient-to-br from-pink-100 to-purple-100 rounded-full flex items-center justify-center mx-auto mb-6 shadow-lg">
+                <span className="text-4xl animate-bounce">🪄</span>
+              </div>
+
+              {/* 标题 */}
+              <h3 className="text-xl font-black text-gray-800 mb-2">
+                魔法能量休息中 ✨
+              </h3>
+
+              {/* 说明文字 */}
+              <p className="text-gray-600 text-sm leading-relaxed mb-6">
+                为了保证每位魔法师都能享受到优质的服务，我们为每位访客准备了
+                <span className="font-bold text-pink-500">4次/小时</span>
+                的魔法体验机会。
+              </p>
+
+              {/* 温馨提示 */}
+              <div className="bg-gradient-to-r from-pink-50 to-purple-50 rounded-2xl p-4 mb-6">
+                <p className="text-sm text-gray-700 leading-relaxed">
+                  🌸 请稍作休息，品一杯暖茶，或是欣赏窗外的风景。
+                  <br />
+                  🌟 魔法能量很快就会恢复哦！
+                </p>
+              </div>
+
+              {/* 操作按钮 */}
+              <div className="flex gap-3">
+                <button
+                  onClick={() => setShowLimitModal(false)}
+                  className="flex-1 py-3 px-6 bg-gray-100 hover:bg-gray-200 text-gray-700 rounded-full font-bold transition-all active:scale-95">
+                  我知道了
+                </button>
+                <button
+                  onClick={() => {
+                    setShowLimitModal(false);
+                    setStep("upload");
+                  }}
+                  className="flex-1 py-3 px-6 magic-gradient text-white rounded-full font-bold shadow-lg hover:shadow-xl transition-all active:scale-95">
+                  返回主页
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };

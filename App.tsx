@@ -93,21 +93,44 @@ const App: React.FC = () => {
             alt="Magic Banner"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
-          <div className="absolute top-6 left-6">
+          {/* <div className="absolute top-6 left-6">
             <span className="bg-pink-500 text-white text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-wider">
               新品速递
             </span>
-          </div>
+          </div> */}
           <div className="absolute bottom-8 left-8 right-8 text-white">
             <h2 className="text-3xl font-bold mb-2">魔法少女系列</h2>
             <p className="text-sm opacity-80 mb-4">
               使用AI试戴，开启你的华丽蜕变。
             </p>
-            <button
-              onClick={() => setActiveTab("tryon")}
-              className="bg-white text-pink-600 px-8 py-3 rounded-full font-bold shadow-lg active:scale-95 transition-all">
-              立即体验
-            </button>
+            <div className="relative">
+              {/* 魔法光环效果 */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-r from-pink-400 to-purple-500 opacity-50 blur-xl animate-pulse"></div>
+              <div
+                className="absolute inset-0 rounded-full bg-gradient-to-r from-yellow-300 to-pink-400 opacity-30 blur-lg animate-ping"
+                style={{ animationDuration: "2s" }}></div>
+
+              {/* 主要按钮 */}
+              <button
+                onClick={() => setActiveTab("tryon")}
+                className="relative bg-gradient-to-r from-white/80 to-pink-50/70 text-pink-600 px-10 py-4 rounded-full font-black text-lg shadow-2xl border-2 border-white/40 backdrop-blur-sm hover:shadow-pink-500/25 hover:scale-105 active:scale-95 transition-all duration-300 group overflow-hidden">
+                <span className="relative z-10 flex items-center gap-2">
+                  <span className="animate-bounce">👆</span>
+                  <span>立即体验魔法</span>
+                  <span className="animate-bounce delay-100">✨</span>
+                </span>
+
+                {/* 按钮内部光效 */}
+                <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white/20 to-transparent -translate-x-full group-hover:translate-x-full transition-transform duration-1000"></div>
+              </button>
+
+              {/* 提示文字 */}
+              <div className="text-center mt-3 opacity-90">
+                <p className="text-xs font-medium animate-pulse">
+                  点击开始你的魔法之旅！
+                </p>
+              </div>
+            </div>
           </div>
         </div>
       </div>
