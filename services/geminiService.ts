@@ -14,20 +14,169 @@ interface AccessRecord {
   lastAccess: number;
 }
 
-const ACCESS_LIMIT = 4; // 每小时最大访问次数
+// 根据设备类型调整限制
+function getAccessLimit(): number {
+  // 检测是否为移动设备
+  const isMobile =
+    /Android|webOS|iPhone|iPad|iPod|BlackBerry|IEMobile|Opera Mini/i.test(
+      navigator.userAgent
+    );
+
+  // 移动设备稍微放宽限制（因为NAT和共享IP更常见）
+  return isMobile ? 5 : 4;
+}
+
 const TIME_WINDOW = 60 * 60 * 1000; // 1小时，毫秒
+
+// 生成设备指纹（作为IP获取失败时的fallback，移动端优化）
+function getDeviceFingerprint(): string {
+  try {
+    const canvas = document.createElement("canvas");
+    const ctx = canvas.getContext("2d");
+    // 在移动端Canvas可能不可用，添加try-catch
+    if (ctx) {
+      ctx.fillText("fingerprint", 10, 10);
+    }
+
+    // 移动端特有的特征
+    const mobileFeatures = [
+      "ontouchstart" in window, // 触摸支持
+      navigator.maxTouchPoints || 0, // 最大触摸点
+      "orientation" in window, // 屏幕方向
+      screen.orientation?.angle || 0, // 屏幕角度
+      navigator.connection?.effectiveType || "unknown", // 网络类型（移动端常见）
+    ];
+
+    const fingerprint = [
+      navigator.userAgent,
+      navigator.language,
+      screen.width + "x" + screen.height,
+      new Date().getTimezoneOffset(),
+      !!window.sessionStorage,
+      !!window.localStorage,
+      !!window.indexedDB,
+      "serviceWorker" in navigator, // Service Worker支持
+      "Notification" in window, // 通知支持
+      "vibrate" in navigator, // 震动支持（移动端）
+      "geolocation" in navigator, // 地理位置支持
+      ...mobileFeatures,
+      canvas.toDataURL ? canvas.toDataURL().substring(0, 50) : "no-canvas", // 限制Canvas数据长度
+    ].join("|");
+
+    // 使用改进的hash函数
+    let hash = 0;
+    for (let i = 0; i < fingerprint.length; i++) {
+      const char = fingerprint.charCodeAt(i);
+      hash = (hash << 5) - hash + char;
+      hash = hash & hash; // 转换为32位整数
+    }
+
+    return "fp-" + Math.abs(hash).toString(36);
+  } catch (error) {
+    // 如果指纹生成失败，使用最简单的fallback
+    console.warn("设备指纹生成失败:", error);
+    return "fallback-" + Date.now().toString(36);
+  }
+}
+
+// 安全的存储操作（兼容移动端浏览器）
+function safeGetItem(key: string): string | null {
+  try {
+    // 先尝试localStorage
+    return localStorage.getItem(key);
+  } catch (error) {
+    console.warn("localStorage读取失败:", error);
+    try {
+      // fallback到sessionStorage
+      return sessionStorage.getItem(key);
+    } catch (sessionError) {
+      console.warn("sessionStorage也读取失败:", sessionError);
+      // 最后的fallback：尝试使用cookie（移动端更兼容）
+      try {
+        const cookies = document.cookie.split(";");
+        for (const cookie of cookies) {
+          const [cookieKey, cookieValue] = cookie.trim().split("=");
+          if (cookieKey === key) {
+            return decodeURIComponent(cookieValue);
+          }
+        }
+      } catch (cookieError) {
+        console.warn("Cookie读取也失败:", cookieError);
+      }
+      return null;
+    }
+  }
+}
+
+function safeSetItem(key: string, value: string): boolean {
+  try {
+    // 优先使用localStorage
+    localStorage.setItem(key, value);
+    return true;
+  } catch (error) {
+    console.warn("localStorage写入失败，尝试sessionStorage:", error);
+    try {
+      sessionStorage.setItem(key, value);
+      return true;
+    } catch (sessionError) {
+      console.warn("sessionStorage写入也失败，尝试cookie:", sessionError);
+      try {
+        // 使用cookie作为最后的fallback（设置7天过期）
+        const expires = new Date(
+          Date.now() + 7 * 24 * 60 * 60 * 1000
+        ).toUTCString();
+        document.cookie = `${key}=${encodeURIComponent(
+          value
+        )}; expires=${expires}; path=/; SameSite=Lax`;
+        return true;
+      } catch (cookieError) {
+        console.warn("Cookie写入也失败:", cookieError);
+        return false;
+      }
+    }
+  }
+}
 
 // 获取客户端IP（在浏览器环境中使用公共服务）
 async function getClientIP(): Promise<string> {
-  try {
-    const response = await fetch("https://api.ipify.org?format=json");
-    const data = await response.json();
-    return data.ip;
-  } catch (error) {
-    console.warn("无法获取IP地址，使用本地标识:", error);
-    // 降级方案：使用浏览器指纹
-    return "local-" + Math.random().toString(36).substr(2, 9);
+  // 首先尝试多个IP查询服务（移动端兼容）
+  const ipServices = ["https://api.ip.sb/jsonip", "https://httpbin.org/ip"];
+
+  for (const service of ipServices) {
+    try {
+      const controller = new AbortController();
+      const timeoutId = setTimeout(() => controller.abort(), 5000); // 移动端网络可能较慢，增加超时时间
+
+      const response = await fetch(service, {
+        signal: controller.signal,
+        headers: {
+          Accept: "application/json",
+          "User-Agent": "Mozilla/5.0 (compatible; MagicAccessory/1.0)",
+          "Cache-Control": "no-cache", // 避免缓存问题
+        },
+        mode: "cors", // 明确指定CORS模式
+      });
+      clearTimeout(timeoutId);
+
+      if (!response.ok) continue;
+
+      const data = await response.json();
+
+      // 不同的服务返回不同的格式
+      const ip = data.ip || data.query || data.origin;
+      if (ip && typeof ip === "string") {
+        console.log(`成功获取IP (${service}):`, ip);
+        return ip;
+      }
+    } catch (error) {
+      console.warn(`${service} 获取失败:`, error);
+      continue;
+    }
   }
+
+  // 如果所有服务都失败，使用设备指纹（移动端优化）
+  console.warn("所有IP查询服务失败，使用设备指纹");
+  return getDeviceFingerprint();
 }
 
 // 获取剩余使用次数
@@ -37,35 +186,35 @@ export async function getRemainingUses(): Promise<number> {
     const storageKey = `miragehime_access_${clientIP}`;
     const now = Date.now();
 
-    const stored = localStorage.getItem(storageKey);
+    const stored = safeGetItem(storageKey);
     if (stored) {
       const record: AccessRecord = JSON.parse(stored);
 
       // 检查是否超过时间窗口
       if (now - record.firstAccess > TIME_WINDOW) {
-        return ACCESS_LIMIT; // 重置后可以全额使用
+        return getAccessLimit(); // 重置后可以全额使用
       }
 
-      return Math.max(0, ACCESS_LIMIT - record.count);
+      return Math.max(0, getAccessLimit() - record.count);
     }
 
-    return ACCESS_LIMIT; // 新用户可以全额使用
+    return getAccessLimit(); // 新用户可以全额使用
   } catch (error) {
     console.warn("获取剩余使用次数失败:", error);
-    return ACCESS_LIMIT; // 出错时假设可以全额使用
+    return getAccessLimit(); // 出错时假设可以全额使用
   }
 }
 
-// 检查访问限制
 // 检查并记录访问
 async function recordAccess(): Promise<void> {
   try {
     const clientIP = await getClientIP();
     const storageKey = `miragehime_access_${clientIP}`;
     const now = Date.now();
+    const currentLimit = getAccessLimit();
 
     // 获取现有记录
-    const stored = localStorage.getItem(storageKey);
+    const stored = safeGetItem(storageKey);
     let record: AccessRecord;
 
     if (stored) {
@@ -90,12 +239,12 @@ async function recordAccess(): Promise<void> {
     }
 
     // 检查是否超过限制
-    if (record.count >= ACCESS_LIMIT) {
+    if (record.count >= currentLimit) {
       const remainingTime = Math.ceil(
         (TIME_WINDOW - (now - record.firstAccess)) / (60 * 1000)
       );
       throw new Error(
-        `访问过于频繁，请${remainingTime}分钟后再试。（每小时最多使用${ACCESS_LIMIT}次）`
+        `访问过于频繁，请${remainingTime}分钟后再试。（每小时最多使用${currentLimit}次）`
       );
     }
 
@@ -103,10 +252,17 @@ async function recordAccess(): Promise<void> {
     record.count += 1;
     record.lastAccess = now;
 
-    // 保存记录
-    localStorage.setItem(storageKey, JSON.stringify(record));
+    // 保存记录（优先localStorage，失败时使用sessionStorage，最后使用cookie）
+    const saved = safeSetItem(storageKey, JSON.stringify(record));
+    if (!saved) {
+      console.warn("存储访问记录失败，限制功能可能不生效");
+    }
 
-    console.log(`IP ${clientIP} 访问记录: ${record.count}/${ACCESS_LIMIT}`);
+    console.log(
+      `IP ${clientIP} 访问记录: ${record.count}/${currentLimit} (${
+        navigator.userAgent.includes("Mobile") ? "移动端" : "桌面端"
+      })`
+    );
   } catch (error) {
     if (error instanceof Error) {
       throw error;
