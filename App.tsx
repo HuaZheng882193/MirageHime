@@ -1,12 +1,11 @@
-
-import React, { useState } from 'react';
-import { ACCESSORIES } from './constants';
-import { AppTab } from './types';
-import Navigation from './components/Navigation';
-import TryOnScreen from './components/TryOnScreen';
+import React, { useState } from "react";
+import { ACCESSORIES } from "./constants";
+import { AppTab } from "./types";
+import Navigation from "./components/Navigation";
+import TryOnScreen from "./components/TryOnScreen";
 
 const App: React.FC = () => {
-  const [activeTab, setActiveTab] = useState<AppTab>('home');
+  const [activeTab, setActiveTab] = useState<AppTab>("home");
 
   return (
     <div className="min-h-screen pb-24 max-w-md mx-auto relative shadow-2xl bg-white overflow-hidden">
@@ -14,57 +13,100 @@ const App: React.FC = () => {
       <header className="px-6 pt-8 pb-4 flex justify-between items-center">
         <div className="flex items-center gap-3">
           <div className="w-12 h-12 magic-gradient rounded-full flex items-center justify-center text-white shadow-lg">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-6 h-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z" /></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-6 h-6"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M5 3v4M3 5h4M6 17v4m-2-2h4m5-16l2.286 6.857L21 12l-7.714 2.143L11 21l-2.286-6.857L1 12l7.714-2.143L11 3z"
+              />
+            </svg>
           </div>
           <div>
-            <h1 className="font-bold text-xl tracking-tight text-gray-800">幻饰姬</h1>
+            <h1 className="font-bold text-xl tracking-tight text-gray-800">
+              幻饰姬
+            </h1>
             <p className="text-pink-500 text-[10px] font-medium">魔法首饰</p>
           </div>
         </div>
         <div className="flex items-center gap-3">
           <button className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-800 border border-gray-100">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+              />
+            </svg>
           </button>
           <button className="w-10 h-10 rounded-full bg-white shadow-sm flex items-center justify-center text-gray-800 border border-gray-100">
-            <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z" /></svg>
+            <svg
+              xmlns="http://www.w3.org/2000/svg"
+              className="w-5 h-5"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor">
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M16 7a4 4 0 11-8 0 4 4 0 018 0zM12 14a7 7 0 00-7 7h14a7 7 0 00-7-7z"
+              />
+            </svg>
           </button>
         </div>
       </header>
 
       {/* Search Bar */}
+      {/*       
       <div className="px-6 mb-8">
         <div className="relative group">
           <div className="absolute inset-y-0 left-4 flex items-center">
             <span className="text-xl">🐵</span>
           </div>
-          <input 
-            type="text" 
-            placeholder="搜索魔法道具..." 
+          <input
+            type="text"
+            placeholder="搜索魔法道具..."
             className="w-full bg-white border border-pink-100 rounded-full py-4 pl-12 pr-4 focus:ring-2 focus:ring-pink-200 outline-none shadow-sm placeholder-gray-300 text-sm"
           />
         </div>
       </div>
+      */}
 
       {/* Hero Banner */}
       <div className="px-6 mb-8">
         <div className="relative rounded-[40px] overflow-hidden shadow-2xl h-64 group cursor-pointer">
-          <img 
-            src="https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=1000&q=80&auto=format&fit=crop" 
+          <img
+            src="https://images.unsplash.com/photo-1573408301185-9146fe634ad0?w=1000&q=80&auto=format&fit=crop"
             className="absolute inset-0 w-full h-full object-cover transition-transform duration-700 group-hover:scale-110"
             alt="Magic Banner"
           />
           <div className="absolute inset-0 bg-gradient-to-t from-black/80 via-black/20 to-transparent"></div>
           <div className="absolute top-6 left-6">
-            <span className="bg-pink-500 text-white text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-wider">新品速递</span>
+            <span className="bg-pink-500 text-white text-[10px] px-3 py-1 rounded-full font-bold uppercase tracking-wider">
+              新品速递
+            </span>
           </div>
           <div className="absolute bottom-8 left-8 right-8 text-white">
             <h2 className="text-3xl font-bold mb-2">魔法少女系列</h2>
-            <p className="text-sm opacity-80 mb-4">使用AI试戴，开启你的华丽蜕变。</p>
-            <button 
-              onClick={() => setActiveTab('tryon')}
-              className="bg-white text-pink-600 px-8 py-3 rounded-full font-bold shadow-lg active:scale-95 transition-all"
-            >
-              立即探索
+            <p className="text-sm opacity-80 mb-4">
+              使用AI试戴，开启你的华丽蜕变。
+            </p>
+            <button
+              onClick={() => setActiveTab("tryon")}
+              className="bg-white text-pink-600 px-8 py-3 rounded-full font-bold shadow-lg active:scale-95 transition-all">
+              立即体验
             </button>
           </div>
         </div>
@@ -73,14 +115,17 @@ const App: React.FC = () => {
       {/* Category Tabs */}
       <div className="px-6 flex justify-between mb-10 overflow-x-auto hide-scrollbar gap-4">
         {[
-          { icon: '🌸', name: '戒指', color: 'bg-pink-100 text-pink-500' },
-          { icon: '☀️', name: '项圈', color: 'bg-purple-100 text-purple-500' },
-          { icon: '〰️', name: '手链', color: 'bg-blue-100 text-blue-500' },
-          { icon: '⭐', name: '发卡', color: 'bg-yellow-100 text-yellow-500' },
-          { icon: '✨', name: '魔杖', color: 'bg-green-100 text-green-500' },
+          { icon: "🌸", name: "戒指", color: "bg-pink-100 text-pink-500" },
+          { icon: "☀️", name: "项圈", color: "bg-purple-100 text-purple-500" },
+          { icon: "〰️", name: "手链", color: "bg-blue-100 text-blue-500" },
+          { icon: "⭐", name: "发卡", color: "bg-yellow-100 text-yellow-500" },
+          { icon: "✨", name: "魔杖", color: "bg-green-100 text-green-500" },
         ].map((cat, i) => (
-          <div key={i} className="flex flex-col items-center gap-2 flex-shrink-0">
-            <div className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-sm ${cat.color}`}>
+          <div
+            key={i}
+            className="flex flex-col items-center gap-2 flex-shrink-0">
+            <div
+              className={`w-14 h-14 rounded-full flex items-center justify-center text-2xl shadow-sm ${cat.color}`}>
               {cat.icon}
             </div>
             <span className="text-xs font-bold text-gray-700">{cat.name}</span>
@@ -98,19 +143,43 @@ const App: React.FC = () => {
         {ACCESSORIES.map((item) => (
           <div key={item.id} className="flex flex-col gap-3 group">
             <div className="relative aspect-square rounded-[32px] overflow-hidden bg-gray-50 shadow-sm border border-gray-100">
-              <img src={item.image} className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500" alt={item.name} />
+              <img
+                src={item.image}
+                className="w-full h-full object-cover transition-transform group-hover:scale-110 duration-500"
+                alt={item.name}
+              />
               <button className="absolute top-4 right-4 w-10 h-10 glass-card rounded-full flex items-center justify-center text-gray-800 shadow-sm active:scale-90">
-                <svg xmlns="http://www.w3.org/2000/svg" className="w-5 h-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z" /></svg>
+                <svg
+                  xmlns="http://www.w3.org/2000/svg"
+                  className="w-5 h-5"
+                  fill="none"
+                  viewBox="0 0 24 24"
+                  stroke="currentColor">
+                  <path
+                    strokeLinecap="round"
+                    strokeLinejoin="round"
+                    strokeWidth={2}
+                    d="M4.318 6.318a4.5 4.5 0 000 6.364L12 20.364l7.682-7.682a4.5 4.5 0 00-6.364-6.364L12 7.636l-1.318-1.318a4.5 4.5 0 00-6.364 0z"
+                  />
+                </svg>
               </button>
             </div>
             <div>
-              <p className="text-[10px] text-purple-600 font-bold mb-1">{item.tag}</p>
-              <h4 className="font-bold text-gray-900 mb-2 truncate">{item.name}</h4>
+              <p className="text-[10px] text-purple-600 font-bold mb-1">
+                {item.tag}
+              </p>
+              <h4 className="font-bold text-gray-900 mb-2 truncate">
+                {item.name}
+              </h4>
               <div className="flex justify-between items-center">
-                <span className="text-[10px] px-2 py-0.5 bg-pink-50 text-pink-500 rounded-md font-bold">{item.rarity}</span>
+                <span className="text-[10px] px-2 py-0.5 bg-pink-50 text-pink-500 rounded-md font-bold">
+                  {item.rarity}
+                </span>
                 <div className="flex items-center gap-1">
                   <span className="text-yellow-400 text-xs">★</span>
-                  <span className="text-xs font-bold text-gray-400">{item.rating}</span>
+                  <span className="text-xs font-bold text-gray-400">
+                    {item.rating}
+                  </span>
                 </div>
               </div>
             </div>
@@ -119,8 +188,8 @@ const App: React.FC = () => {
       </div>
 
       {/* Active Overlays */}
-      {activeTab === 'tryon' && (
-        <TryOnScreen onBack={() => setActiveTab('home')} />
+      {activeTab === "tryon" && (
+        <TryOnScreen onBack={() => setActiveTab("home")} />
       )}
 
       {/* Footer Navigation */}
