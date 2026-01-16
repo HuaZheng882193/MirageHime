@@ -591,16 +591,7 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
                   </p>
                 </div> */}
 
-                {/* 魔导语 */}
-                <div className="bg-white rounded-2xl p-5 shadow-sm">
-                  <div className="flex items-center gap-2 mb-3">
-                    <span className="text-pink-400">📖</span>
-                    <h3 className="text-sm font-bold text-gray-500">魔导语</h3>
-                  </div>
-                  <p className="text-gray-600 text-sm leading-relaxed">
-                    “{analysis?.magicChant || "汝之指尖流转着星辰般的微光，那是来自远古森之国度的契约。这股柔和却坚韧的灵力，在晨曦与夜色交替之际最为明亮。正如那些被月光亲吻过的白银，汝的手型注定将与最纯粹的魔法回路产生共鸣。"}”
-                  </p>
-                </div>
+
 
                 {/* 美学建议 */}
                 <div className="bg-white rounded-2xl p-5 shadow-sm">
@@ -611,6 +602,17 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
                   <p className="text-gray-700 text-sm leading-relaxed">
                     建议搭配<span className="text-pink-500 font-bold">冷色调金属</span>（如白金或钛银）以及具有高透明度的<span className="text-purple-500 font-bold">月长石或蓝宝石</span>，以中和这种灵动的仙气。
                     {analysis?.recommendations && <span className="block mt-2 text-gray-500 text-xs italic opacity-80 border-t border-gray-50 pt-2">{analysis.recommendations}</span>}
+                  </p>
+                </div>
+
+                {/* 魔导语 */}
+                <div className="bg-white rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-pink-400">📖</span>
+                    <h3 className="text-sm font-bold text-gray-500">魔导语</h3>
+                  </div>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    “{analysis?.magicChant || "汝之指尖流转着星辰般的微光，那是来自远古森之国度的契约。这股柔和却坚韧的灵力，在晨曦与夜色交替之际最为明亮。正如那些被月光亲吻过的白银，汝的手型注定将与最纯粹的魔法回路产生共鸣。"}”
                   </p>
                 </div>
 
