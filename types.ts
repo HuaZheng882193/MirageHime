@@ -15,6 +15,7 @@ export interface HandAnalysis {
   features: string[];
   recommendations: string;
   recommendedTypes: string[]; // 仅保留首饰类型名称
+  magicChant?: string; // 魔导语
 }
 
 export type AppTab = 'home' | 'tryon' | 'wishlist' | 'menu' | 'profile';

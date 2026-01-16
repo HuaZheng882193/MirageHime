@@ -1,6 +1,7 @@
 import React, { useState, useRef } from "react";
 import { analyzeHand, getRemainingUses } from "../services/geminiService";
 import { HandAnalysis } from "../types";
+import { ACCESSORIES } from "../constants";
 
 declare var html2pdf: any;
 declare var html2canvas: any;
@@ -51,6 +52,23 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
 
   const fileInputRef = useRef<HTMLInputElement>(null);
   const reportContentRef = useRef<HTMLDivElement>(null);
+
+  // 根据美学建议随机选择推荐款式
+  const recommendedAccessories = React.useMemo(() => {
+    if (!analysis) return [];
+    // 优先选择与当前品类一致的饰品
+    const sameCategory = ACCESSORIES.filter(a => a.category === activeCategory);
+    // 混合其他品类的饰品作为次选
+    const otherCategories = ACCESSORIES.filter(a => a.category !== activeCategory);
+
+    // 随机打乱并平铺
+    const pool = [...sameCategory].sort(() => Math.random() - 0.5);
+    const fallback = [...otherCategories].sort(() => Math.random() - 0.5);
+
+    // 组合，同类在前
+    const all = [...pool, ...fallback];
+    return all.slice(0, 3);
+  }, [analysis, activeCategory]);
 
   // 小游戏函数
   const initializeGems = () => {
@@ -344,9 +362,8 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
                       style={{
                         left: "50%",
                         top: "50%",
-                        transform: `translate(-50%, -50%) rotate(${
-                          i * 60
-                        }deg) translateY(-20px)`,
+                        transform: `translate(-50%, -50%) rotate(${i * 60
+                          }deg) translateY(-20px)`,
                         animationDelay: `${i * 0.1}s`,
                       }}
                     />
@@ -505,197 +522,163 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
         return (
           <div className="flex-1 flex flex-col bg-[#FFF5F7] overflow-y-auto hide-scrollbar">
             {/* 魔法报告主容器 */}
-            <div ref={reportContentRef} className="bg-[#FFF5F7] pb-12">
-              {/* 顶部英雄区：带装饰的拍立得效果 */}
-              <div className="relative pt-12 px-6 pb-4">
-                <div className="relative aspect-[4/5] w-full rounded-[40px] overflow-hidden shadow-2xl border-[12px] border-white ring-1 ring-pink-100">
-                  <img
-                    src={image!}
-                    className="w-full h-full object-cover"
-                    alt="Uploaded"
-                    crossOrigin="anonymous"
-                  />
-                  <div className="absolute inset-0 bg-gradient-to-t from-pink-500/20 to-transparent"></div>
+            <div ref={reportContentRef} className="bg-[#FFF5F7] pb-12 w-full">
+              {/* 顶部背景装饰 */}
+              <div className="h-48 bg-pink-100/30 absolute top-0 left-0 right-0 -z-0"></div>
 
-                  {/* 悬浮装饰 */}
-                  <div className="absolute top-4 right-4 bg-white/90 backdrop-blur px-4 py-2 rounded-2xl flex items-center gap-2 shadow-lg">
-                    <span className="text-pink-500 animate-pulse">✨</span>
-                    <span className="text-[10px] font-black text-gray-800 tracking-tighter">
-                      AI GENETIC SCAN
-                    </span>
-                  </div>
+              {/* 标题 */}
+              <div className="text-center pt-6 pb-2 relative z-10 flex items-center justify-between px-6">
+                <div className="w-6"></div>
+                <h1 className="text-gray-800 font-bold text-lg">AI 灵力分析报告</h1>
+                <button className="text-gray-800">
+                  <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M8.684 13.342C8.886 12.938 9 12.482 9 12c0-.482-.114-.938-.316-1.342m0 2.684a3 3 0 110-2.684m0 2.684l6.632 3.316m-6.632-6l6.632-3.316m0 0a3 3 0 105.367-2.684 3 3 0 00-5.367 2.684zm0 9.316a3 3 0 105.368 2.684 3 3 0 00-5.368-2.684z" />
+                  </svg>
+                </button>
+              </div>
 
-                  {/* 魔法印章 */}
-                  <div className="absolute bottom-6 left-6 w-20 h-20 border-2 border-white/50 rounded-full flex items-center justify-center rotate-12">
-                    <div className="text-[8px] text-white font-bold text-center leading-tight">
-                      CERTIFIED
-                      <br />
-                      AESTHETIC
-                      <br />
-                      GENIUS
+              {/* 灵力识别区 */}
+              <div className="relative pt-4 pb-12 flex flex-col items-center">
+                <div className="relative">
+                  {/* 分层圆环装饰 */}
+                  <div className="w-44 h-44 rounded-full border-2 border-dashed border-pink-300 flex items-center justify-center p-2">
+                    <div className="w-full h-full rounded-full border border-pink-200 p-2">
+                      <div className="w-full h-full rounded-full overflow-hidden shadow-xl border-4 border-white">
+                        <img
+                          src={image!}
+                          className="w-full h-full object-cover"
+                          alt="Uploaded"
+                          crossOrigin="anonymous"
+                        />
+                      </div>
                     </div>
+                  </div>
+                  {/* 状态标鉴 */}
+                  <div className="absolute -bottom-2 left-1/2 -translate-x-1/2 bg-pink-100 text-pink-500 text-[10px] px-3 py-1 rounded-full font-bold shadow-sm whitespace-nowrap">
+                    灵力感应完成
                   </div>
                 </div>
               </div>
 
-              <div className="px-6 -mt-8 relative z-10 pb-4">
-                {/* 结果主卡片 */}
-                <div className="bg-white rounded-[48px] shadow-[0_30px_60px_-15px_rgba(255,102,153,0.15)] p-8 border-b-8 border-pink-100">
-                  {/* 标题区 */}
-                  <div className="text-center mb-10">
-                    <div className="inline-block px-4 py-1 bg-pink-50 rounded-full text-[10px] font-black text-pink-400 uppercase tracking-[0.3em] mb-3">
-                      Your Magic Signature
-                    </div>
-                    <h2 className="text-gray-900 text-4xl font-black mb-2 flex items-center justify-center gap-3">
-                      <span className="text-2xl">✦</span>
-                      {analysis?.shape}
-                      <span className="text-2xl">✦</span>
-                    </h2>
-                    <div className="h-1 w-20 bg-gradient-to-r from-transparent via-pink-200 to-transparent mx-auto"></div>
+              <div className="px-5 space-y-4 relative z-10">
+                {/* 手型分析 */}
+                <div className="bg-white rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-pink-400">✨</span>
+                    <h3 className="text-sm font-bold text-gray-500">手型分析</h3>
                   </div>
-
-                  <div className="space-y-10">
-                    {/* 形态特征 */}
-                    <section>
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="w-6 h-6 bg-pink-100 rounded-full flex items-center justify-center text-[10px]">
-                          🌸
-                        </div>
-                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                          魔法特质描述
-                        </h4>
-                      </div>
-                      <div className="flex flex-wrap gap-2">
-                        {analysis?.features
-                          ?.filter(
-                            (feature) => feature && feature.trim().length > 0
-                          )
-                          ?.map((feature, i) => (
-                            <div
-                              key={i}
-                              className="px-5 py-2.5 bg-[#FFF9FA] rounded-2xl text-gray-700 text-sm font-bold border border-pink-50 shadow-sm transition-transform hover:scale-105">
-                              {feature.trim()}
-                            </div>
-                          )) || (
-                          <div className="px-5 py-2.5 bg-[#FFF9FA] rounded-2xl text-gray-500 text-sm font-bold border border-pink-50 shadow-sm">
-                            暂无特征描述
-                          </div>
-                        )}
-                      </div>
-                    </section>
-
-                    {/* 专家建议：信件风格 */}
-                    <section className="relative">
-                      <div className="absolute -top-4 -right-2 text-6xl text-pink-50 opacity-50 select-none">
-                        “
-                      </div>
-                      <div className="flex items-center gap-2 mb-4">
-                        <div className="w-6 h-6 bg-purple-100 rounded-full flex items-center justify-center text-[10px]">
-                          🔮
-                        </div>
-                        <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                          专属美学建议
-                        </h4>
-                      </div>
-                      <div className="bg-gradient-to-br from-pink-50/50 to-purple-50/30 rounded-[32px] p-7 border border-pink-100/50">
-                        <p className="text-gray-800 text-[15px] leading-loose font-medium italic">
-                          {analysis?.recommendations}
-                        </p>
-                      </div>
-                    </section>
-
-                    {/* 推荐类型：网格卡片 */}
-                    <section>
-                      <div className="flex items-center justify-between mb-5">
-                        <div className="flex items-center gap-2">
-                          <div className="w-6 h-6 bg-yellow-100 rounded-full flex items-center justify-center text-[10px]">
-                            ⭐
-                          </div>
-                          <h4 className="text-xs font-black text-gray-400 uppercase tracking-widest">
-                            推荐款式风格
-                          </h4>
-                        </div>
-                        <span className="text-[9px] bg-pink-500 text-white px-3 py-1 rounded-full font-black animate-bounce shadow-lg shadow-pink-200">
-                          99% MATCH
-                        </span>
-                      </div>
-                      <div className="grid grid-cols-2 gap-4">
-                        {analysis?.recommendedTypes.map((type, i) => (
-                          <div
-                            key={i}
-                            className="group relative bg-[#FFF9FA] p-4 rounded-[28px] border border-pink-50 flex flex-col items-center text-center transition-all hover:bg-white hover:shadow-xl active:scale-95">
-                            <div className="w-12 h-12 rounded-full bg-white shadow-inner flex items-center justify-center text-xl mb-3 border border-pink-50">
-                              {activeCategory === "ring" ? "💍" : "✨"}
-                            </div>
-                            <span className="text-gray-900 font-black text-[10px] leading-tight px-1">
-                              {type}
-                            </span>
-                            <div className="mt-2 flex gap-0.5">
-                              {[1, 2, 3].map((s) => (
-                                <span
-                                  key={s}
-                                  className="text-[8px] text-pink-300">
-                                  ★
-                                </span>
-                              ))}
-                            </div>
-                          </div>
-                        ))}
-                      </div>
-                    </section>
+                  <h2 className="text-2xl font-black text-pink-500 mb-2">{analysis?.shape}</h2>
+                  <p className="text-gray-400 text-xs leading-relaxed">
+                    {analysis?.features.join("，")}。
+                  </p>
+                  <div className="flex justify-end mt-1">
+                    <button className="w-8 h-8 rounded-full bg-pink-50 flex items-center justify-center text-pink-500">
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-4 w-4" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm1 15h-2v-6h2v6zm0-8h-2V7h2v2z" />
+                      </svg>
+                    </button>
                   </div>
                 </div>
 
-                {/* 页脚版权 */}
-                <div className="pt-12 text-center opacity-30">
-                  <p className="text-[8px] font-black tracking-[0.4em] text-gray-400 uppercase">
-                    Magic Accessory AI Lab • 2024
+                {/* 特质描述 */}
+                {/* <div className="bg-white rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-purple-400">🪄</span>
+                    <h3 className="text-sm font-bold text-gray-500">特质描述</h3>
+                  </div>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    “{analysis?.magicChant || "汝之指尖流转着星辰般的微光，那是来自远古森之国度的契约。这股柔和却坚韧的灵力，在晨曦与夜色交替之际最为明亮。正如那些被月光亲吻过的白银，汝的手型注定将与最纯粹的魔法回路产生共鸣。"}”
                   </p>
+                </div> */}
+
+                {/* 魔导语 */}
+                <div className="bg-white rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-pink-400">📖</span>
+                    <h3 className="text-sm font-bold text-gray-500">魔导语</h3>
+                  </div>
+                  <p className="text-gray-600 text-sm leading-relaxed">
+                    “{analysis?.magicChant || "汝之指尖流转着星辰般的微光，那是来自远古森之国度的契约。这股柔和却坚韧的灵力，在晨曦与夜色交替之际最为明亮。正如那些被月光亲吻过的白银，汝的手型注定将与最纯粹的魔法回路产生共鸣。"}”
+                  </p>
+                </div>
+
+                {/* 美学建议 */}
+                <div className="bg-white rounded-2xl p-5 shadow-sm">
+                  <div className="flex items-center gap-2 mb-3">
+                    <span className="text-yellow-500">💡</span>
+                    <h3 className="text-sm font-bold text-gray-500">美学建议</h3>
+                  </div>
+                  <p className="text-gray-700 text-sm leading-relaxed">
+                    建议搭配<span className="text-pink-500 font-bold">冷色调金属</span>（如白金或钛银）以及具有高透明度的<span className="text-purple-500 font-bold">月长石或蓝宝石</span>，以中和这种灵动的仙气。
+                    {analysis?.recommendations && <span className="block mt-2 text-gray-500 text-xs italic opacity-80 border-t border-gray-50 pt-2">{analysis.recommendations}</span>}
+                  </p>
+                </div>
+
+                {/* 推荐款式 */}
+                <div className="pt-2">
+                  <div className="flex justify-between items-center mb-4 px-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-pink-400">✨</span>
+                      <h3 className="text-sm font-bold text-gray-800">推荐款式</h3>
+                    </div>
+                    <button className="text-[10px] text-gray-400">查看更多</button>
+                  </div>
+
+                  <div className="flex gap-4 overflow-x-auto pb-4 hide-scrollbar">
+                    {recommendedAccessories.map((item, idx) => (
+                      <div key={item.id} className="min-w-[120px] flex flex-col gap-2">
+                        <div className="relative aspect-square rounded-2xl overflow-hidden shadow-sm bg-white">
+                          <img src={item.image} className="w-full h-full object-cover" alt={item.name} />
+                          <div className="absolute top-2 left-2 bg-pink-500 text-white text-[8px] px-1.5 py-0.5 rounded-md font-bold">
+                            契合度 {99 - idx * (Math.floor(Math.random() * 2) + 1)}%
+                          </div>
+                        </div>
+                        <div>
+                          <h4 className="text-[11px] font-bold text-gray-800 truncate">{item.name}</h4>
+                          <span className="text-[9px] text-purple-500 font-medium">{item.rarity || '传奇'}</span>
+                        </div>
+                      </div>
+                    ))}
+                  </div>
+                  {analysis?.recommendedTypes && (
+                    <div className="flex flex-wrap gap-2 mt-2 px-1">
+                      {analysis.recommendedTypes.map((type, i) => (
+                        <span key={i} className="text-[10px] bg-white px-3 py-1 rounded-full text-gray-500 border border-pink-100">
+                          #{type}
+                        </span>
+                      ))}
+                    </div>
+                  )}
                 </div>
               </div>
             </div>
 
             {/* 操作按钮区 (始终保持底部) */}
-            <div className="px-6 pb-12 pt-4 bg-[#FFF5F7]">
+            <div className="px-6 pb-12 pt-4 bg-[#FFF5F7] border-t border-pink-100/50">
               <div className="grid grid-cols-2 gap-4">
                 <button
                   onClick={onBack}
-                  className="py-5 bg-white rounded-[28px] text-gray-400 font-black text-sm border-2 border-pink-50 shadow-sm active:scale-95 transition-all">
+                  className="py-4 bg-white rounded-full text-gray-500 font-bold text-sm shadow-sm active:scale-95 transition-all flex items-center justify-center gap-2">
+                  <span className="text-lg">📔</span>
                   暂存记忆
                 </button>
                 <button
                   onClick={handleDownloadPNG}
                   disabled={isDownloading}
-                  className="py-5 magic-gradient rounded-[28px] text-white font-black text-sm shadow-xl shadow-pink-200 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
+                  className="py-4 bg-pink-500 rounded-full text-white font-bold text-sm shadow-lg shadow-pink-200 active:scale-95 transition-all flex items-center justify-center gap-2 disabled:opacity-50">
                   {isDownloading ? (
                     <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                   ) : (
-                    <span className="flex items-center gap-2">
-                      <svg
-                        xmlns="http://www.w3.org/2000/svg"
-                        className="w-5 h-5"
-                        fill="none"
-                        viewBox="0 0 24 24"
-                        stroke="currentColor">
-                        <path
-                          strokeLinecap="round"
-                          strokeLinejoin="round"
-                          strokeWidth={2.5}
-                          d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"
-                        />
+                    <>
+                      <svg xmlns="http://www.w3.org/2000/svg" className="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M3 9a2 2 0 012-2h.93a2 2 0 001.664-.89l.812-1.22A2 2 0 0110.07 4h3.86a2 2 0 011.664.89l.812 1.22A2 2 0 0018.07 7H19a2 2 0 012 2v9a2 2 0 01-2 2H5a2 2 0 01-2-2V9z" />
+                        <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 13a3 3 0 11-6 0 3 3 0 016 0z" />
                       </svg>
                       导出图片
-                    </span>
+                    </>
                   )}
                 </button>
               </div>
-              <button
-                onClick={() => setStep("category")}
-                className="w-full mt-6 py-2 text-pink-400 font-black text-[10px] tracking-widest flex items-center justify-center gap-2 hover:text-pink-600 transition-colors">
-                <span>RE-DIAGNOSIS</span>
-                <span className="w-1 h-1 bg-pink-200 rounded-full"></span>
-                <span>重新诊断</span>
-              </button>
             </div>
           </div>
         );
@@ -707,11 +690,10 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
       <div className="absolute top-0 left-0 right-0 p-6 flex justify-between items-center z-20 pointer-events-none">
         <button
           onClick={onBack}
-          className={`w-10 h-10 rounded-xl flex items-center justify-center pointer-events-auto active:scale-90 transition-all ${
-            step === "result"
-              ? "bg-white/90 text-gray-700 hover:bg-white shadow-lg"
-              : "bg-white/10 backdrop-blur-xl text-white hover:bg-white/20"
-          }`}>
+          className={`w-10 h-10 rounded-xl flex items-center justify-center pointer-events-auto active:scale-90 transition-all ${step === "result"
+            ? "bg-white/90 text-gray-700 hover:bg-white shadow-lg"
+            : "bg-white/10 backdrop-blur-xl text-white hover:bg-white/20"
+            }`}>
           <svg
             xmlns="http://www.w3.org/2000/svg"
             className="w-5 h-5"
@@ -726,24 +708,22 @@ const TryOnScreen: React.FC<TryOnScreenProps> = ({ onBack }) => {
             />
           </svg>
         </button>
-        <div className="text-center">
+        {/* <div className="text-center">
           <span
-            className={`text-[9px] uppercase tracking-[0.2em] font-bold block mb-1 transition-colors ${
-              step === "result"
-                ? "text-pink-500 drop-shadow-sm"
-                : "text-white/40"
-            }`}>
+            className={`text-[9px] uppercase tracking-[0.2em] font-bold block mb-1 transition-colors ${step === "result"
+              ? "text-pink-500 drop-shadow-sm"
+              : "text-white/40"
+              }`}>
             Mirror Lab
           </span>
           <h2
-            className={`font-black tracking-tight transition-all ${
-              step === "result"
-                ? "text-gray-900 text-xl drop-shadow-sm"
-                : "text-white text-lg"
-            }`}>
+            className={`font-black tracking-tight transition-all ${step === "result"
+              ? "text-gray-900 text-xl drop-shadow-sm"
+              : "text-white text-lg"
+              }`}>
             AI 美学实验室
           </h2>
-        </div>
+        </div> */}
         <div className="w-10 h-10"></div>
       </div>
       {renderContent()}

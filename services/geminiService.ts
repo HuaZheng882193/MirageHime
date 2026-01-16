@@ -23,7 +23,7 @@ function getAccessLimit(): number {
     );
 
   // 移动设备稍微放宽限制（因为NAT和共享IP更常见）
-  return isMobile ? 5 : 4;
+  return isMobile ? 20 : 4;
 }
 
 const TIME_WINDOW = 60 * 60 * 1000; // 1小时，毫秒
@@ -259,8 +259,7 @@ async function recordAccess(): Promise<void> {
     }
 
     console.log(
-      `IP ${clientIP} 访问记录: ${record.count}/${currentLimit} (${
-        navigator.userAgent.includes("Mobile") ? "移动端" : "桌面端"
+      `IP ${clientIP} 访问记录: ${record.count}/${currentLimit} (${navigator.userAgent.includes("Mobile") ? "移动端" : "桌面端"
       })`
     );
   } catch (error) {
@@ -325,7 +324,17 @@ export const analyzeHand = async (base64Image: string, category: string) => {
           content: [
             {
               type: "text",
-              text: `请分析这张手部照片。首先识别手型（如：尖锥型、长方型、椭圆型等），详细描述其特点，并专门针对"${categoryName}"品类给出专业美学建议。此外，请列出4种最适合该手型的${categoryName}具体款式类型（例如：细带简约型、夸张宝石型、编织波西米亚型等）。请以JSON格式返回，格式如下：{"hand_type": "手型名称", "hand_characteristics": "手型特点描述", "aesthetic_advice_for_bracelets": "美学建议", "recommended_bracelet_styles": ["款式1", "款式2", "款式3", "款式4"]}，不要包含Markdown代码块。`,
+              text: `请分析这张手部照片。首先识别手型（常见分类：锥形手、方形手、长方形手、椭圆形手、宽掌短指手等），直接给出手型名称，然后用朴实、具体的语言描述它的明显特征（手指长度比例、手掌宽窄、骨节突出度、皮肤质感等），避免华丽修饰。
+专门针对手链品类，给出实用、直白的美学建议：重点说明什么样式的链条、粗细、材质、长度能更好修饰这个手型的优点、弥补缺点，让手看起来更协调或更有型。
+最后列出4种最适合这个手型的具体手链款式类型，用简洁、明确的名称描述（例如：细链单层型、粗链叠戴型、中性皮绳型、大颗粒珠串型等）。
+严格以JSON格式返回，格式如下：
+{
+"hand_type": "手型名称",
+"hand_characteristics": "手型特点的直白描述",
+"aesthetic_advice_for_bracelets": "实用美学建议",
+"recommended_bracelet_styles": ["款式1", "款式2", "款式3", "款式4"]
+}
+不要包含Markdown代码块，不要添加任何额外说明或文学化表达。`,
             },
             {
               type: "image_url",
@@ -338,7 +347,7 @@ export const analyzeHand = async (base64Image: string, category: string) => {
       ],
       stream: false,
       max_tokens: 4096,
-      temperature: 0,
+      temperature: 0.7, // 增加一些随机性使文案更优雅
       top_p: 0.8,
       frequency_penalty: 0.1,
       response_format: { type: "json_object" },
@@ -381,6 +390,7 @@ export const analyzeHand = async (base64Image: string, category: string) => {
       features: convertCharacteristicsToArray(rawData.hand_characteristics),
       recommendations: rawData.aesthetic_advice_for_bracelets || "暂无建议",
       recommendedTypes: rawData.recommended_bracelet_styles || [],
+      magicChant: rawData.magic_chant || "",
     };
 
     // 验证转换后的数据结构
